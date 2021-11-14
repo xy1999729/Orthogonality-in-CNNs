@@ -256,7 +256,7 @@ def validate(val_loader, model, criterion, epoch):
     model.eval()
     end = time.time()
     for i, (input, target) in enumerate(val_loader):
-        target = target.cuda(async=True)
+        target = target.cuda()
         input = input.cuda()
         #print ( input.shape)
         with torch.no_grad():
