@@ -143,7 +143,11 @@ def main():
 #     model = WideResNet(args.layers, args.dataset == 'cifar10' and 10 or 100,
 #                             args.widen_factor, dropRate=args.droprate)
     model = models.__dict__['resnet34'](pretrained=True)
-    model.fc = nn.Linear(in_features=512, out_features=args.dataset == 'cifar10' and 10 or 100, bias=True)
+    if args.dataset == 'cifar10':
+        numCLASS = 10
+    else:
+        numCLASS = 100
+    model.fc = nn.Linear(in_features=512, out_features=numCLASS, bias=True)
     # get the number of model parameters
     print('Number of model parameters: {}'.format(
         sum([p.data.nelement() for p in model.parameters()])))
