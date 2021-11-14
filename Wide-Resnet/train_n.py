@@ -12,6 +12,7 @@ import torch.optim
 import torch.utils.data
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
+import torchvision.models as models
 from torch.autograd import Variable
 from torch.nn.functional import normalize
 
