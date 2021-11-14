@@ -139,9 +139,10 @@ def main():
         batch_size=args.batch_size, shuffle=True, **kwargs)
 
     # create model
-    model = WideResNet(args.layers, args.dataset == 'cifar10' and 10 or 100,
-                            args.widen_factor, dropRate=args.droprate)
-
+#     model = WideResNet(args.layers, args.dataset == 'cifar10' and 10 or 100,
+#                             args.widen_factor, dropRate=args.droprate)
+    models.__dict__['resnet34'](pretrained=True)
+    model.fc = nn.Linear(in_features=512, out_features=args.dataset == 'cifar10' and 10 or 100, bias=True)
     # get the number of model parameters
     print('Number of model parameters: {}'.format(
         sum([p.data.nelement() for p in model.parameters()])))
@@ -191,11 +192,11 @@ def main():
         # remember best prec@1 and save checkpoint
         is_best = prec1 > best_prec1
         best_prec1 = max(prec1, best_prec1)
-        save_checkpoint({
-            'epoch': epoch + 1,
-            'state_dict': model.state_dict(),
-            'best_prec1': best_prec1,
-        }, is_best)
+#         save_checkpoint({
+#             'epoch': epoch + 1,
+#             'state_dict': model.state_dict(),
+#             'best_prec1': best_prec1,
+#         }, is_best)
     print ('Best accuracy: ', best_prec1)
 
 def train(train_loader, model, criterion, optimizer, epoch,odecay):
@@ -203,7 +204,7 @@ def train(train_loader, model, criterion, optimizer, epoch,odecay):
     batch_time = AverageMeter()
     losses = AverageMeter()
     top1 = AverageMeter()
-
+    top5 = AverageMeter()
     # switch to train mode
     model.train()
 
@@ -223,9 +224,10 @@ def train(train_loader, model, criterion, optimizer, epoch,odecay):
         loss = criterion(output, target_var)
         loss = loss + oloss
         # measure accuracy and record loss
-        prec1 = accuracy(output.data, target, topk=(1,))[0]
+        prec1, prec5 = accuracy(output.data, target, topk=(1,5))
         losses.update(loss.item(), input.size(0))
         top1.update(prec1.item(), input.size(0))
+        top5.update(prec5.item(), input.size(0))
 
         # compute gradient and do SGD step
         optimizer.zero_grad()
@@ -239,15 +241,17 @@ def train(train_loader, model, criterion, optimizer, epoch,odecay):
     print('Epoch: [{0}][{1}/{2}]\t'
                   'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                   'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                  'Prec@1 {top1.val:.3f} ({top1.avg:.3f})'.format(
+                  'Prec@1 {top1.val:.3f} ({top1.avg:.3f})'
+                  'Prec@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
                       epoch, i, len(train_loader), batch_time=batch_time,
-                      loss=losses, top1=top1))
+                      loss=losses, top1=top1, top5=top5))
                       
 def validate(val_loader, model, criterion, epoch):
     """Perform validation on the validation set"""
     batch_time = AverageMeter()
     losses = AverageMeter()
     top1 = AverageMeter()
+    top5 = AverageMeter()
     
     model.eval()
     end = time.time()
@@ -264,14 +268,16 @@ def validate(val_loader, model, criterion, epoch):
         loss = criterion(output, target_var)
 
         # measure accuracy and record loss
-        prec1 = accuracy(output.data, target, topk=(1,))[0]
+        prec1, prec5 = accuracy(output.data, target, topk=(1,5))
         losses.update(loss.item(), input.size(0))
         top1.update(prec1.item(), input.size(0))
+        top5.update(prec5.item(), input.size(0))
         #torch.cuda.empty_cache()
         # measure elapsed time
         batch_time.update(time.time() - end)
         end = time.time()
-    print('Validate * Prec@1 {top1.avg:.3f}'.format(top1=top1))
+    print(' * Acc@1 {top1.avg:.3f} Acc@5 {top5.avg:.3f}'
+              .format(top1=top1, top5=top5))
     return top1.avg
     
 def save_checkpoint(state, is_best, filename='checkpoint.pth.tar'):
